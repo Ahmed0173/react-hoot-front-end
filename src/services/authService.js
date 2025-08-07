@@ -94,4 +94,23 @@ const signout = () => {
   localStorage.removeItem('token');
 };
 
-export { signup, signin, signout };
+const getUser = () => {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  
+  try {
+    // Decode the JWT to get user information
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return {
+      id: payload.payload._id,
+      username: payload.payload.username,
+      _id: payload.payload._id
+    };
+  } catch (err) {
+    // If token is invalid, remove it
+    localStorage.removeItem('token');
+    return null;
+  }
+};
+
+export { signup, signin, signout, getUser };

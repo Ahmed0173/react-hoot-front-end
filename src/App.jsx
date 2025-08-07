@@ -12,9 +12,11 @@ import * as authService from './services/authService';
 import * as hootService from './services/hootService';
 import './App.css';
 
+export const AuthedUserContext = createContext(null);
+
 const App = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(authService.getUser());
   const [hoots, setHoots] = useState([]);
 
   useEffect(() => {
@@ -32,13 +34,30 @@ const App = () => {
   };
 
   const handleAddHoot = async (hootFormData) => {
-  const newHoot = await hootService.create(hootFormData);
-  setHoots([newHoot, ...hoots]);
-  navigate('/hoots');
-};
+    const newHoot = await hootService.create(hootFormData);
+    setHoots([newHoot, ...hoots]);
+    navigate('/hoots');
+  };
+
+  const handleDeleteHoot = async (hootId) => {
+    // Call upon the service function:
+    const deletedHoot = await hootService.deleteHoot(hootId);
+    // Filter state using deletedHoot._id:
+    setHoots(hoots.filter((hoot) => hoot._id !== deletedHoot._id));
+    // Redirect the user:
+    navigate('/hoots');
+  };
+
+  const handleUpdateHoot = async (hootId, hootFormData) => {
+    const updatedHoot = await hootService.update(hootId, hootFormData);
+
+    setHoots(hoots.map((hoot) => (hootId === hoot._id ? updatedHoot : hoot)));
+
+    navigate(`/hoots/${hootId}`);
+  };
 
   return (
-    <>
+    <AuthedUserContext.Provider value={user}>
       <NavBar user={user} handleSignout={handleSignout} />
       <Routes>
         {user ? (
@@ -46,8 +65,9 @@ const App = () => {
           <>
             <Route path="/" element={<Dashboard user={user} />} />
             <Route path="/hoots" element={<HootList hoots={hoots} />} />
-            <Route path="/hoots/:id" element={<HootDetails hoots={hoots} />} />
+            <Route path="/hoots/:id" element={<HootDetails hoots={hoots} handleDeleteHoot={handleDeleteHoot} />} />
             <Route path="/hoots/new" element={<HootForm handleAddHoot={handleAddHoot} />} />
+            <Route path="/hoots/:hootId/edit" element={<HootForm handleUpdateHoot={handleUpdateHoot} />} />
           </>
         ) : (
           // Public Route:
@@ -56,7 +76,7 @@ const App = () => {
         <Route path="/signup" element={<SignupForm setUser={setUser} />} />
         <Route path="/signin" element={<SigninForm setUser={setUser} />} />
       </Routes>
-    </>
+    </AuthedUserContext.Provider>
   )
 };
 
